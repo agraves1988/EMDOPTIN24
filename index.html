@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketing Opt-Ins</title>
+    <link rel="stylesheet" href="./src/resources/css/styles.css">
+    <link rel="stylesheet" href="./src/resources/css/bulma-checkbox.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap"
+        rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+    <style>
+        html {
+            background-image: url("./src/resources/images/background.jpg");
+        }
+
+        body {
+            font-family: "Hind", sans-serif;
+            height: 100%;
+        }
+
+        .error {
+            color: red;
+            display: none;
+        }
+
+        #submitBtn[disabled] {
+            opacity: 0.7;
+        }
+
+        label {
+            color: black !important;
+        }
+    </style>
+
+    <script>
+
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!emailRegex.test(email)) {
+                $("#errorMessage").show();
+                $("#submitBtn").prop('disabled', true);
+            } else {
+                $("#errorMessage").hide();
+                $("#submitBtn").prop('disabled', false);
+            }
+        }
+
+        function processGuest() {
+            let firstName = $('#firstName').val();
+            let lastName = $('#lastName').val();
+            let email = $('#email').val();
+            let phone = $('#phone').val();
+            let location = $('#location').val();
+            let emailFlag = $('#emailOptIn').is(':checked');
+            let smsFlag = $('#smsOptIn').is(':checked');
+
+            let guestData = { "firstName": firstName, "lastName": lastName, "email": email, "phone": phone, "location": location, "emailOptIn": emailFlag, "smsOptIn": smsFlag };
+
+            $("#submitBtn").prop('disabled', true);
+            $("#loadingImage").show();
+            $.ajax({
+                type: "POST",
+                url: "./src/action/action.php",
+                data: JSON.stringify(guestData),
+                dataType: "text",
+                success: function (response) {
+                    if (response == "Success") {
+                        $("#mainContent").hide();
+                        $("#thankYouContainer").show();
+                    } else if (response == "Duplicate") {
+                        alert("Duplicate guest profiles found. Opt-In preferences couldn't be updated.");
+                    } else if (response == "Empty") {
+                        alert("Please fill in all fields and try again.");
+                    } else if (response == "Access Denied") {
+                        alert("Access Denied, please refresh and try again.");
+                    } else {
+                        alert("Guest profile could not be fetched/ updated, please try again!");
+                    }
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    alert('Please try again - ' + errorThrown);
+                }, complete: function () {
+                    $("#submitBtn").prop('disabled', false);
+                    $("#loadingImage").hide();
+                }
+            });
+        }
+
+        $(document).ready(function () {
+
+            $('#phone').on('keydown', function (event) {
+                if ($.inArray(event.keyCode, [46, 8, 9, 27, 13]) !== -1 ||
+                    (event.keyCode === 65 && event.ctrlKey === true) ||
+                    (event.keyCode === 67 && event.ctrlKey === true) ||
+                    (event.keyCode === 86 && event.ctrlKey === true) ||
+                    (event.keyCode >= 35 && event.keyCode <= 39)) {
+                    return;
+                }
+
+                if ((event.shiftKey || (event.keyCode < 48 || event.keyCode > 57) &&
+                    (event.keyCode < 96 || event.keyCode > 105)) ||
+                    $(this).val().length >= 10) {
+                    event.preventDefault();
+                }
+            });
+
+            $('#phone').on('input', function () {
+                this.value = this.value.replace(/\D/g, '').slice(0, 10);
+            });
+
+            $('#email').on('focusout', function () {
+                validateEmail($(this).val());
+            });
+
+            $('.form-fields').on('focusout', function () {
+                if ($(this).val().trim() == '') {
+                    $(this).css('border', '1px solid red');
+                } else {
+                    $(this).css('border', '');
+                }
+            });
+
+            $('#submitBtn').click(function () {
+                const email = $('#email').val();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                if (!emailRegex.test(email)) {
+                    $('#errorMessage').show();
+                    $("#submitBtn").prop('disabled', true);
+                    return;
+                } else {
+                    $('#errorMessage').hide();
+                    $("#submitBtn").prop('disabled', false);
+                }
+
+                let phone = $('#phone').val();
+                if (phone.trim() != "" && phone.length != 10) {
+                    alert('Please enter a 10-digit valid phone number');
+                    return;
+                }
+
+                let emptyFields = false;
+                $('.form-fields').each(function () {
+                    if ($(this).val().trim() == '') {
+                        emptyFields = true;
+                        $(this).css('border', '1px solid red');
+                    } else {
+                        $(this).css('border', '');
+                    }
+                });
+
+                if (emptyFields) {
+                    alert("Please fill all the fields and try again");
+                } else {
+                    processGuest();
+                }
+
+            });
+        });
+
+    </script>
+
+</head>
+
+<body>
+    <div id="mainContent" class="section" style="padding: 1%;">
+        <div class="container" style="border-radius: 15px;">
+
+            <div class=""
+                style="color: var(--primary-color);text-align: center;background: var(--primary-color);border-radius: 15px 15px 0px 0px;padding: 10px;">
+                <img src="src/resources/images/logo.svg" alt="Logo" title="Logo"
+                    style="background-color: var(--primary-color); padding: 0.5%; padding-top: 1.2%;">
+                <br>
+
+            </div>
+
+            <div style="background: var(--form-bg);padding: 0% 2%; border-radius: 0px 0px 15px 15px;">
+
+                <h1
+                    style="text-align: center; color: black; text-transform: uppercase; font-size: 1.7em; font-weight: 500;">
+                    Subscribe and stay informed!</h1>
+
+                <div class="columns mt-3">
+                    <div class="column">
+                        <div class="field">
+                            <label class="label mandatory">First Name</label>
+                            <div class="control">
+                                <input class="input form-fields" name="firstName" id="firstName" type="text"
+                                    placeholder="" required value="">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="field">
+                            <label class="label">Last Name</label>
+                            <div class="control">
+                                <input class="input form-fields" name="lastName" id="lastName" type="text"
+                                    placeholder="" required value="">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="field">
+                            <label class="label">Preferred Location</label>
+                            <div class="control">
+                                <div class="select" style="width: 100%;">
+                                    <select class="input form-fields" name="location" id="location" required>
+                                        <option value="">Select</option>
+                                        <option value="ESTHETIXMD SPA" selected>ESTHETIXMD SPA</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="columns">
+                    <div class="column">
+                        <div class="field">
+                            <label class="label">Email</label>
+                            <div class="control">
+                                <input class="input form-fields" name="email" id="email" type="email" required value="">
+                            </div>
+                            <div class="error" id="errorMessage">Please enter a valid email address.</div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="field">
+                            <label class="label">Phone Number</label>
+                            <div class="control has-icons-left ">
+                                <input class="input form-fields" name="phone" id="phone" type="text" placeholder=""
+                                    required value="">
+                                <span class="icon is-small is-left">
+                                    +1
+                                </span>
+                            </div>
+                            <p id="phoneError" class="help is-danger"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="columns is-centered" style="margin-bottom: 0px;">
+                    <div class="column has-text-centered">
+                        <div class="field">
+                            <label style="font-weight: 600;">By subscribing, you agree to receive marketing emails and
+                                text notifications from us.
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="columns is-centered">
+                    <div class="column is-half is-1">
+                        <div class="field">
+                            <div class="control">
+                                <label class="b-checkbox checkbox" style="font-weight: 600;">
+                                    <input type="checkbox" name="emailOptIn" id="emailOptIn" value="emailOptIn">
+                                    <span class="check is-primary"></span>
+                                    <span class="control-label">Email</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-half is-1">
+                        <div class="field">
+                            <div class="control">
+                                <label class="b-checkbox checkbox" style="font-weight: 600;">
+                                    <input type="checkbox" name="smsOptIn" id="smsOptIn" value="smsOptIn">
+                                    <span class="check is-primary"></span>
+                                    <span class="control-label">SMS</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="columns is-centered">
+                    <div class="column has-text-centered">
+                        <div class="field">
+                            <div class="control">
+                                <button id="submitBtn" class="button"
+                                    style="background-color: var(--primary-color);color: #fff; font-size: 18px;">Subscribe</button>
+                                <img id="loadingImage" src="./src/resources/images/loading.gif" alt="loading"
+                                    style="display: none; width: 4%; ">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <div id="thankYouContainer" class="section" style="display:none; padding: 1%;">
+        <br><br><br>
+        <div class="container" style="background-color: var(--form-bg);padding: 1%; border-radius: 15px;">
+            <p class="is-size-3" style="color: black; text-align: center;">
+                Your response has been submitted. Thank you!
+            </p>
+        </div>
+    </div>
+
+</body>
+
+</html>
